@@ -143,7 +143,7 @@ export default function App() {
 
       <aside className="panel">
         {look2077 && <div className="tag">Weimar · 2077</div>}
-        <h1>{look2077 ? 'Supersonic reach' : 'Walking reach'}</h1>
+        <h1>{look2077 ? 'Weimar 2077' : 'Walking reach'}</h1>
         <p className="hint">
           Click on the ground, between the buildings, to start {look2077 ? 'a supersonic ride' : 'a walk'} there. Drag to
           orbit, right-drag to pan, scroll to zoom.
