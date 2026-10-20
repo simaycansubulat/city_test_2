@@ -457,88 +457,167 @@ button.icon {
   color: #0b0d1a;
 }
 
-/* ---- Landmark panel with its hologram ---- */
+/* ---- The ghost of a landmark's guide, and its subtitles ---- */
 
-.landmark {
+/* the ghost stands on the roof: its wisp touches the anchor point */
+.ghost {
+  width: 230px;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+
+/* it rises out of the building, growing and gaining shape */
+.ghost-rise {
+  transform-origin: 50% 100%;
+  animation: ghost-rise 2.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* then it floats, never quite still, pale and see-through, its lower body fading into the air */
+.ghost-float {
+  animation: ghost-float 5s ease-in-out infinite;
+  opacity: 0.72;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 10px rgba(143, 248, 255, 0.8)) drop-shadow(0 0 28px rgba(0, 229, 255, 0.45));
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, 0.35) 14%, #000 42%);
+  mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, 0.35) 14%, #000 42%);
+}
+
+.hologram.ghostly .holo-body {
+  animation: holo-sway 6s ease-in-out infinite, ghost-flicker 5.3s ease-in-out infinite;
+}
+
+.hologram.ghostly.speaking .holo-body {
+  animation: holo-sway 4s ease-in-out infinite, ghost-flicker 2.6s ease-in-out infinite;
+}
+
+.ghost-wisp {
+  transform-origin: 100px 250px;
+  animation: ghost-wisp 3.2s ease-in-out infinite;
+}
+
+@keyframes ghost-rise {
+  0% {
+    transform: translateY(40%) scale(0.15, 0.05);
+    opacity: 0;
+    filter: blur(12px);
+  }
+  45% {
+    opacity: 0.6;
+    filter: blur(5px);
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes ghost-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6%);
+  }
+}
+
+@keyframes ghost-flicker {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  30% {
+    opacity: 0.55;
+  }
+  60% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes ghost-wisp {
+  0%,
+  100% {
+    transform: skewX(-6deg) scaleX(1);
+  }
+  50% {
+    transform: skewX(7deg) scaleX(0.92);
+  }
+}
+
+/* subtitles at the bottom of the screen, like in a film */
+.subtitles {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 360px;
-  max-width: calc(100% - 48px);
-  max-height: calc(100% - 64px);
-  overflow-y: auto;
   z-index: 10;
-  padding: 12px 14px;
-  background: rgba(8, 10, 22, 0.92);
+  left: 50%;
+  bottom: 44px;
+  transform: translateX(-50%);
+  width: min(620px, calc(100% - 32px));
+  padding: 8px 14px 9px;
+  text-align: center;
   color: #e8ecf6;
-  border: 1px solid rgba(0, 229, 255, 0.4);
-  border-left: 3px solid #fcee0a;
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
-  box-shadow: 0 0 22px rgba(0, 229, 255, 0.2);
+  background: rgba(5, 7, 16, 0.62);
+  border-top: 1px solid rgba(143, 248, 255, 0.35);
+  backdrop-filter: blur(4px);
 }
 
-.landmark header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.lm-kind {
-  font: 10.5px ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #00e5ff;
-}
-
-.landmark h2.lm-name {
-  font: 700 18px system-ui, sans-serif;
-  text-transform: none;
-  letter-spacing: 0;
-  color: #fcee0a;
-  margin: 2px 0 0;
-}
-
-.lm-body {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  margin: 6px 0;
-}
-
-.lm-holo {
-  width: 160px;
-  flex: none;
-}
-
-.lm-guide {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
-  color: #b3bccf;
-  padding-bottom: 14px;
-}
-
-.lm-guide strong {
+.sub-who {
+  font: 11px ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: 0.06em;
   color: #8ff8ff;
-  font-size: 14px;
 }
 
-.caption {
-  min-height: 4.4em;
-  margin: 6px 0;
-  padding: 8px 10px;
-  font-size: 14px;
-  line-height: 1.45;
-  background: rgba(0, 229, 255, 0.08);
-  border-left: 2px solid #00e5ff;
+.sub-name {
+  color: #fcee0a;
+  font-weight: 700;
+}
+
+.sub-line {
+  margin: 4px 0 6px;
+  font-size: 16px;
+  line-height: 1.4;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+}
+
+.sub-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sub-bar .lm-progress {
+  flex: 1;
+  margin: 0 6px 0 0;
+}
+
+.sub-bar button {
+  font: 600 12px system-ui, sans-serif;
+  min-width: 28px;
+  padding: 3px 7px;
+  border-radius: 2px;
+  border: 1px solid rgba(252, 238, 10, 0.7);
+  background: transparent;
+  color: #fcee0a;
+  cursor: pointer;
+}
+
+.sub-bar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sub-note {
+  margin-top: 5px;
+  font-size: 10.5px;
+  color: #8792a8;
 }
 
 .lm-progress {
   display: flex;
   gap: 4px;
-  margin-bottom: 8px;
 }
 
 .lm-progress span {
@@ -553,38 +632,6 @@ button.icon {
 
 .lm-progress span.on {
   background: #fcee0a;
-}
-
-.lm-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.lm-controls button {
-  font: 600 12px system-ui, sans-serif;
-  padding: 5px 10px;
-  border-radius: 2px;
-  border: 1px solid #fcee0a;
-  background: transparent;
-  color: #fcee0a;
-  cursor: pointer;
-}
-
-.lm-controls button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.lm-note,
-.lm-small {
-  font-size: 11px;
-  color: #9aa6bd;
-}
-
-.lm-small {
-  margin: 8px 0 0;
 }
 
 /* The hologram: it flickers, sways and blinks, and glows brighter while it speaks */
@@ -653,7 +700,11 @@ button.icon {
 
 @media (prefers-reduced-motion: reduce) {
   .holo-body,
-  .holo-eyes {
+  .holo-eyes,
+  .hologram.ghostly .holo-body,
+  .ghost-rise,
+  .ghost-float,
+  .ghost-wisp {
     animation: none;
   }
 }
@@ -671,4 +722,107 @@ button.icon {
   left: 0;
   top: 0;
   pointer-events: auto;
+}
+
+/* ---- Pollution, Transportation and Forest additions ---- */
+
+/* five tabs in two columns: the last one spans the full width */
+.tab:last-child:nth-child(odd) {
+  grid-column: span 2;
+}
+
+/* a bus line number in its real line colour, like on the stop signs */
+.line-badge {
+  display: inline-block;
+  min-width: 18px;
+  margin-right: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.legend .small {
+  max-width: 300px;
+  white-space: normal;
+}
+
+.next-forest {
+  font: inherit;
+  font-size: 12px;
+  margin-top: 4px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid #fcee0a;
+  background: rgba(252, 238, 10, 0.1);
+  color: #fcee0a;
+  cursor: pointer;
+}
+
+.next-forest:hover {
+  background: rgba(252, 238, 10, 0.22);
+}
+
+.y2077.mode-pollution .tab.pollution.on {
+  background: rgba(160, 140, 90, 0.18);
+  border-color: #c9b47a;
+  box-shadow: 0 0 12px rgba(201, 180, 122, 0.3);
+}
+
+/* the warning sign over a dying forest */
+.forest-warning {
+  min-width: 190px;
+  padding: 8px 14px 10px;
+  text-align: center;
+  color: #ffe1c4;
+  background: rgba(40, 8, 4, 0.72);
+  border: 2px solid #ff5a2a;
+  border-radius: 4px;
+  box-shadow: 0 0 24px rgba(255, 90, 42, 0.45);
+  animation: fw-pulse 2.4s ease-in-out infinite, fw-in 0.8s ease-out both;
+}
+
+.fw-title {
+  font: 700 13px ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ff7a45;
+}
+
+.fw-big {
+  font: 800 34px system-ui, sans-serif;
+  line-height: 1.1;
+  color: #ff5a2a;
+}
+
+.fw-text {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@keyframes fw-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 18px rgba(255, 90, 42, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 34px rgba(255, 90, 42, 0.75);
+  }
+}
+
+@keyframes fw-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forest-warning {
+    animation: none;
+  }
 }

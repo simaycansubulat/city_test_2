@@ -6,12 +6,23 @@
 //   building footprints -> building density on a 50 m grid
 //   Zensus 2022 cells   -> residents per 100 m cell, shown as signal specks (cells without a figure stay empty)
 //   street graph        -> street lamps and smart intersections
+//
+// Imagined for the Pollution and Forest tabs: the smog is the building density blurred over the
+// neighbourhood, so it is thickest where the town is densest. It is a picture, not a measurement of
+// the air. The health of each tree follows the smog around it.
 
 import { ringArea } from './geo.js'
 
 export const DENSITY_CELL_M = 50
 export const DENSITY_FULL = 0.55 // a square counts as fully dense from this share of built footprint upwards
 export const RESIDENTS_PER_SPECK = 2
+export const SMOG_RADIUS_M = 100 // the building density is blurred over this distance to make the smog
+export const TREE_HEALTH = [
+  { id: 'healthy', label: 'Healthy', color: '#3f8f45' },
+  { id: 'stressed', label: 'Sick: yellow leaves', color: '#c9b13a' },
+  { id: 'damaged', label: 'Dying: brown, losing leaves', color: '#a0522d' },
+  { id: 'dead', label: 'Dead: bare or fallen', color: '#5a4f47' },
+]
 
 const GREEN_USES = new Set(['recreation', 'cemetery'])
 const WATER_USES = new Set(['flowing water', 'standing water'])
@@ -42,6 +53,28 @@ function pointInPolygon(p, rings) {
   if (!pointInRing(p, rings[0])) return false
   for (let h = 1; h < rings.length; h++) if (pointInRing(p, rings[h])) return false
   return true
+}
+
+// Mean of a grid over a square of (2r + 1) cells, scaled so the highest value is 1
+function blur(values, nx, ny, r) {
+  const out = new Float32Array(nx * ny)
+  let max = 0
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      let sum = 0
+      let n = 0
+      for (let jj = Math.max(0, j - r); jj <= Math.min(ny - 1, j + r); jj++) {
+        for (let ii = Math.max(0, i - r); ii <= Math.min(nx - 1, i + r); ii++) {
+          sum += values[jj * nx + ii]
+          n++
+        }
+      }
+      out[j * nx + i] = sum / n
+      max = Math.max(max, sum / n)
+    }
+  }
+  if (max > 0) for (let k = 0; k < out.length; k++) out[k] /= max
+  return out
 }
 
 function bboxOf(ring) {
@@ -147,6 +180,19 @@ export function prepareScenery(city, { plots, zensus }) {
     const k = cellOf(x, y)
     return k < 0 ? 0 : density[k]
   }
+  // The imagined smog: building density blurred over about 100 m, and over 200 m for the trees,
+  // because air moves and damage builds up over years
+  const smog = blur(density, nx, ny, Math.round(SMOG_RADIUS_M / CELL))
+  const smogWide = blur(density, nx, ny, Math.round((2 * SMOG_RADIUS_M) / CELL))
+  const smogAt = (x, y) => {
+    const k = cellOf(x, y)
+    return k < 0 ? 0 : smog[k]
+  }
+  const smogWideAt = (x, y) => {
+    const k = cellOf(x, y)
+    return k < 0 ? 0 : smogWide[k]
+  }
+
   const cells = []
   for (let j = 0; j < ny; j++) {
     for (let i = 0; i < nx; i++) {
@@ -223,8 +269,26 @@ export function prepareScenery(city, { plots, zensus }) {
     .map((n, i) => ({ x: n.x, y: n.y, deg: degree[i], density: densityAt(n.x, n.y) }))
     .filter((n) => n.deg >= 3 && !isGreen(n.x, n.y))
 
+  const trees = placeTrees(city, green, smogWideAt)
+  // The four largest green areas, for the Forest tab's camera to visit
+  const forests = [...green]
+    .sort((a, b) => b.area - a.area)
+    .slice(0, 4)
+    .map((poly) => {
+      const inPoly = trees.filter((t) => t.poly === poly)
+      const x = inPoly.length ? inPoly.reduce((s, t) => s + t.x, 0) / inPoly.length : (poly.bbox.x0 + poly.bbox.x1) / 2
+      const y = inPoly.length ? inPoly.reduce((s, t) => s + t.y, 0) / inPoly.length : (poly.bbox.y0 + poly.bbox.y1) / 2
+      const health = TREE_HEALTH.map((h) => inPoly.filter((t) => t.health === h.id).length)
+      return { x, y, area: poly.area, size: Math.max(poly.bbox.x1 - poly.bbox.x0, poly.bbox.y1 - poly.bbox.y0), trees: inPoly.length, health }
+    })
+
   return {
     green,
+    trees,
+    forests,
+    treeHealth: TREE_HEALTH.map((h) => trees.filter((t) => t.health === h.id).length),
+    smogAt,
+    smogGrid: smog,
     water,
     squares,
     isGreen,
@@ -238,4 +302,48 @@ export function prepareScenery(city, { plots, zensus }) {
     lamps,
     junctions,
   }
+}
+
+// Trees scattered through the green areas, kept out of the building footprints. Each tree's health is
+// imagined: the more smog around it, the worse, with some chance between neighbours.
+function placeTrees(city, green, smogAt) {
+  // building footprints in a bucket grid, so each tree only checks the buildings near it
+  const G = 40
+  const grid = new Map()
+  city.buildings.forEach((b) => {
+    const r = b.rings[0]
+    const bb = bboxOf(r)
+    for (let i = Math.floor(bb.x0 / G); i <= Math.floor(bb.x1 / G); i++) {
+      for (let j = Math.floor(bb.y0 / G); j <= Math.floor(bb.y1 / G); j++) {
+        const k = `${i},${j}`
+        if (!grid.has(k)) grid.set(k, [])
+        grid.get(k).push(r)
+      }
+    }
+  })
+  const inBuilding = (x, y) => (grid.get(`${Math.floor(x / G)},${Math.floor(y / G)}`) || []).some((r) => pointInRing([x, y], r))
+
+  const random = makeRandom(1776)
+  const trees = []
+  for (const poly of green) {
+    const n = Math.min(900, Math.round(poly.area / 120))
+    const b = poly.bbox
+    for (let k = 0, tries = 0; k < n && tries < n * 6; tries++) {
+      const x = b.x0 + random() * (b.x1 - b.x0)
+      const y = b.y0 + random() * (b.y1 - b.y0)
+      if (!pointInRing([x, y], poly.rings[0]) || poly.rings.slice(1).some((h) => pointInRing([x, y], h))) continue
+      if (inBuilding(x, y)) continue
+      trees.push({ x, y, r: 2.6 + random() * 2.8, h: 7 + random() * 11, tone: random(), lean: random(), poly, smog: smogAt(x, y) })
+      k++
+    }
+  }
+  // scaled to the most polluted tree, so the picture always runs from healthier to dead
+  const top = Math.max(1e-6, ...trees.map((t) => t.smog))
+  for (const t of trees) {
+    // most trees are hit; only those far from the town have a chance to stay healthy
+    const damage = 0.38 + 0.8 * (t.smog / top) + (random() - 0.5) * 0.45
+    t.health = damage < 0.35 ? 'healthy' : damage < 0.55 ? 'stressed' : damage < 0.75 ? 'damaged' : 'dead'
+    t.fallen = t.health === 'dead' && t.lean > 0.7 // some dead trees have already fallen over
+  }
+  return trees
 }

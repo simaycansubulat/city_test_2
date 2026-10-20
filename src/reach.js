@@ -4,6 +4,18 @@ import { makeProjection, ringArea } from './geo.js'
 // The method, in one place. The panel and the README quote these numbers.
 export const SPEED_M_PER_MIN = 80 // 4.8 km/h
 export const MINUTES = [5, 10, 15]
+
+// Weimar 2077: you don't walk, you ride supersonic pods through tubes above the same street network.
+// Mach 1.5 is about 515 m per second; the three areas are what you reach in 1, 2 and 3 seconds.
+// Imagined, like the rest of 2077: the street network and the counts are real, the speed is not.
+export const SUPERSONIC_M_PER_S = 515
+export const SECONDS = [1, 2, 3]
+
+// The two ways of travelling. Each level has a time, its unit and the metres it allows.
+export const TRAVEL = {
+  walk: { id: 'walk', unit: 'min', levels: MINUTES.map((t) => ({ time: t, budget: t * SPEED_M_PER_MIN })) },
+  supersonic: { id: 'supersonic', unit: 's', levels: SECONDS.map((t) => ({ time: t, budget: t * SUPERSONIC_M_PER_S })) },
+}
 export const BAND_M = 25 // band on each side of a reached street segment
 export const MAX_SNAP_M = 100 // farthest a click may be from a walkable node
 
@@ -71,7 +83,7 @@ export function prepareCity({ kit, buildings, graph, zensus }) {
 // ---------------------------------------------------------------------------
 // The reach from one clicked point [x, y] in metres.
 
-export function computeReach(city, point) {
+export function computeReach(city, point, travel = TRAVEL.walk) {
   const start = nearestNode(city, point)
   if (!start || start.dist > MAX_SNAP_M) {
     return { error: `No walkable street within ${MAX_SNAP_M} m of this point.`, point }
@@ -83,20 +95,19 @@ export function computeReach(city, point) {
   const levels = []
   let buildingCandidates = city.buildings.map((_, i) => i)
   let cellCandidates = city.cells.map((_, i) => i)
-  for (const minutes of [...MINUTES].reverse()) {
-    const budget = minutes * SPEED_M_PER_MIN
+  for (const { time, budget } of [...travel.levels].reverse()) {
     const pieces = reachedPieces(city, dist, budget)
     const polygons = bandPolygons(pieces)
     const grid = segmentGrid(pieces)
     const buildingsHit = buildingsTouching(city, grid, buildingCandidates)
     const residents = countResidents(city, grid, cellCandidates)
-    levels.unshift({ minutes, budget, polygons, buildings: buildingsHit, ...residents })
+    levels.unshift({ time, unit: travel.unit, budget, polygons, buildings: buildingsHit, ...residents })
     buildingCandidates = buildingsHit
     cellCandidates = residents.cellsHit
   }
 
   const node = city.nodes[start.index]
-  return { point, start: { x: node.x, y: node.y, dist: start.dist }, levels }
+  return { point, travel: travel.id, start: { x: node.x, y: node.y, dist: start.dist }, levels }
 }
 
 function nearestNode(city, [px, py]) {

@@ -127,11 +127,12 @@ function Collar({ look }) {
   }
 }
 
-export default function Hologram({ look = 'ai', mouth = 0, speaking = false }) {
+// ghost: no projector; the body trails off into a wisp of light instead, as if rising from the roof
+export default function Hologram({ look = 'ai', mouth = 0, speaking = false, ghost = false }) {
   const ai = look === 'ai'
   const mouthOpen = 1 + mouth * 7
   return (
-    <svg className={`hologram${speaking ? ' speaking' : ''}`} viewBox="0 0 200 290" role="img" aria-label="holographic guide">
+    <svg className={`hologram${speaking ? ' speaking' : ''}${ghost ? ' ghostly' : ''}`} viewBox="0 0 200 290" role="img" aria-label="holographic guide">
       <defs>
         <filter id="holo-glow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="2.2" result="b" />
@@ -150,10 +151,20 @@ export default function Hologram({ look = 'ai', mouth = 0, speaking = false }) {
         </pattern>
       </defs>
 
-      {/* the projector and its cone of light */}
-      <polygon points="40,276 160,276 182,40 18,40" fill="url(#holo-cone)" opacity="0.35" />
-      <ellipse cx="100" cy="276" rx="62" ry="9" fill="none" stroke={INK} strokeWidth="2" opacity="0.8" />
-      <ellipse cx="100" cy="276" rx="40" ry="5" fill="rgba(0,229,255,0.4)" />
+      {ghost ? (
+        // the wisp: the body narrows and curls down to the roof
+        <g className="ghost-wisp" filter="url(#holo-glow)">
+          <path d="M30 240 C 40 262 72 268 92 270 C 112 272 118 280 100 290 C 128 284 140 266 170 240 Z" fill={FILL} />
+          <path d="M60 248 C 72 266 96 262 104 276 M140 248 C 130 262 118 266 112 286" fill="none" stroke={INK} strokeWidth="1.2" opacity="0.6" />
+        </g>
+      ) : (
+        <>
+          {/* the projector and its cone of light */}
+          <polygon points="40,276 160,276 182,40 18,40" fill="url(#holo-cone)" opacity="0.35" />
+          <ellipse cx="100" cy="276" rx="62" ry="9" fill="none" stroke={INK} strokeWidth="2" opacity="0.8" />
+          <ellipse cx="100" cy="276" rx="40" ry="5" fill="rgba(0,229,255,0.4)" />
+        </>
+      )}
 
       <g className="holo-body" filter="url(#holo-glow)">
         {/* shoulders */}

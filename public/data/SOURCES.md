@@ -12,6 +12,12 @@ Bounding box, west, south, east, north: 11.315255, 50.973934, 11.334340, 50.9913
 | `zensus.geojson` | Zensus 2022, 100 m grid | dl-de/by-2-0 |
 | `kit.json` | the generator | |
 
+Added to the kit for the 2077 Transportation tab, not by the generator:
+
+| File | Source | Licence |
+| --- | --- | --- |
+| `buslines.json` | Weimar city bus lines 1–9 (operator Stadtwirtschaft Weimar): one direction of each line, its route as runs of [lon, lat] clipped to the kit plus about 150 m, its stops inside that area with names, the line number (`ref`), colour (`colour`), end stops (`from`, `to`) and the OpenStreetMap relation id (`osm`). Looked up once on 2026-10-20 with the Overpass API. | ODbL, © OpenStreetMap contributors |
+
 ## Attribution
 
 Put this line on every map or page that uses the kit:

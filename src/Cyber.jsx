@@ -146,7 +146,7 @@ function hubsOf(scenery, size, minHeight) {
 export function CyberLook({ city, scenery, mode }) {
   const densityOn = mode === 'density'
   const show = {
-    lattice: mode !== 'forest',
+    lattice: mode !== 'forest' && mode !== 'pollution',
     junctions: mode !== 'forest',
     spotlights: !mode || mode === 'architecture',
     links: !mode || mode === 'architecture',

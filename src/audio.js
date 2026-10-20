@@ -1,4 +1,4 @@
-// Generated ambient sound for the four modes, made live with the Web Audio API: no audio files.
+// Generated ambient sound for the five modes, made live with the Web Audio API: no audio files.
 // The engine starts only after a click (browsers block sound before that), crossfades smoothly
 // between modes, has a master volume and mute, and ducks the ambience while a guide is speaking.
 
@@ -197,9 +197,25 @@ function transport(s) {
   })
 }
 
-// Forest: wind, rustling leaves and birdsong
+// Forest: a sick forest. Wind and dry rustling leaves, only a few birds, dead wood creaking, and the
+// low drone of the polluted town never far away.
 function forest(s) {
   const { ctx } = s
+  // the town's drone, far off
+  const drone = s.keep(s.noise())
+  const dlp = s.keep(ctx.createBiquadFilter())
+  dlp.type = 'lowpass'
+  dlp.frequency.value = 120
+  const dg = s.keep(ctx.createGain())
+  dg.gain.value = 0.09
+  drone.connect(dlp).connect(dg).connect(s.out)
+  drone.start()
+  // creaking of dead trunks: a slow, rough, falling tone
+  s.every(5, 11, (t) => {
+    const f = rand(70, 130)
+    const n = Math.floor(rand(2, 5))
+    for (let k = 0; k < n; k++) s.tone({ t: t + k * rand(0.12, 0.25), freq: f * rand(0.9, 1.1), to: f * 0.7, dur: rand(0.2, 0.45), type: 'sawtooth', gain: 0.025, pan: rand(-0.7, 0.7), attack: 0.06 })
+  })
   // wind: low noise, its level and colour drifting slowly
   const wind = s.keep(s.noise())
   const wlp = s.keep(ctx.createBiquadFilter())
@@ -238,8 +254,8 @@ function forest(s) {
     n.start(t, rand(0, 2))
     n.stop(t + dur + 0.05)
   })
-  // birdsong: a few different calls
-  s.every(0.8, 3.5, (t) => {
+  // birdsong: a few different calls, and not many birds left
+  s.every(4, 10, (t) => {
     const pan = rand(-0.9, 0.9)
     const kind = Math.floor(Math.random() * 3)
     if (kind === 0) {
@@ -258,6 +274,57 @@ function forest(s) {
         tt += d * 0.9
       }
     }
+  })
+}
+
+// Pollution: thick air. A heavy low rumble of traffic and industry, the roar of rooftop vents, the
+// hiss of exhaust, and now and then an air-quality warning.
+function pollution(s) {
+  const { ctx } = s
+  const rumble = s.keep(s.noise())
+  const rlp = s.keep(ctx.createBiquadFilter())
+  rlp.type = 'lowpass'
+  rlp.frequency.value = 160
+  const rg = s.keep(ctx.createGain())
+  rg.gain.value = 0.22
+  rumble.connect(rlp).connect(rg).connect(s.out)
+  rumble.start()
+  // vents: a droning hum that slowly beats
+  const vg = s.keep(ctx.createGain())
+  vg.gain.value = 0.035
+  vg.connect(s.out)
+  for (const f of [49, 50.5, 98]) {
+    const o = s.keep(ctx.createOscillator())
+    o.type = 'sawtooth'
+    o.frequency.value = f
+    const lp = s.keep(ctx.createBiquadFilter())
+    lp.type = 'lowpass'
+    lp.frequency.value = 300
+    o.connect(lp).connect(vg)
+    o.start()
+  }
+  // exhaust: bursts of hissing noise
+  s.every(1.5, 4.5, (t) => {
+    const n = s.noise(false)
+    const bp = ctx.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.frequency.value = rand(700, 1600)
+    bp.Q.value = 0.7
+    const g = ctx.createGain()
+    const dur = rand(1, 2.5)
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(rand(0.04, 0.09), t + dur * 0.3)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+    const p = ctx.createStereoPanner()
+    p.pan.value = rand(-0.8, 0.8)
+    n.connect(bp).connect(g).connect(p).connect(s.out)
+    n.start(t, rand(0, 2))
+    n.stop(t + dur + 0.05)
+  })
+  // air-quality warning: two low beeps
+  s.every(10, 18, (t) => {
+    s.tone({ t, freq: 440, dur: 0.25, type: 'square', gain: 0.02 })
+    s.tone({ t: t + 0.35, freq: 349.2, dur: 0.4, type: 'square', gain: 0.02 })
   })
 }
 
@@ -315,7 +382,7 @@ function architecture(s) {
   s.every(2, 5, (t) => s.tone({ t, freq: [1046.5, 1318.5, 1568, 1975.5][Math.floor(Math.random() * 4)], dur: 1.2, gain: 0.025, pan: rand(-0.6, 0.6), dest: delay }))
 }
 
-const SCAPES = { density, transport, forest, architecture }
+const SCAPES = { density, transport, pollution, forest, architecture }
 
 export class SoundEngine {
   constructor() {
